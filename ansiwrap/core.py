@@ -1,26 +1,30 @@
 from __future__ import absolute_import, print_function
 
-from ansiwrap.ansistate import ANSIState
+#from ansiwrap.
+from .ansistate import ANSIState
 import re
 import sys
-import imp
 
 # import a copy of textwrap3 which we will viciously monkey-patch
 # to use our version of len, not the built-in
-import os
-a_textwrap = imp.load_module('a_textwrap', *imp.find_module('textwrap3'))
+# import imp
+# try: a_textwrap = imp.load_module('a_textwrap', *imp.find_module('textwrap3'))
+# except ImportError: a_textwrap = imp.load_module('a_textwrap', *imp.find_module('textwrap'))
+import textwrap as a_textwrap # remove Py2 compatibility
 
+# Add typing
+from typing import Any, List, Dict, Union, Optional, Pattern
 
 __all__ = 'wrap fill shorten strip_color ansilen ansi_terminate_lines'.split()
 
-ANSIRE = re.compile('\x1b\\[(K|.*?m)')
+ANSIRE: Pattern[str] = re.compile('\x1b\\[(K|.*?m)')
 
 
 _PY2 = sys.version_info[0] == 2
 string_types = basestring if _PY2 else str
 
 
-def strip_color(s):
+def strip_color(s: str) -> str:
     """
     Remove ANSI color/style sequences from a string. The set of all
     possibly ANSI sequences is large, so does not try to strip every
@@ -35,7 +39,7 @@ def strip_color(s):
     # via ansicolors
 
 
-def ansilen(s):
+def ansilen(s: str) -> int:
     """
     Return the length of a string as it would be without common
     ANSI control codes. The check of string type not needed for
@@ -54,7 +58,7 @@ def ansilen(s):
 a_textwrap.len = ansilen
 
 
-def _unified_indent(kwargs):
+def _unified_indent(kwargs: Dict[str, Optional[Union[str, int]]]) -> Dict[str, Optional[Union[str, int]]]:
     """
     Private helper. If kwargs has an `indent` parameter, that is
     made into the the value of both the `initial_indent` and the
@@ -77,7 +81,7 @@ def _unified_indent(kwargs):
     return unifed
 
 
-def wrap(s, width=70, **kwargs):
+def wrap(s: str, width: int=70, **kwargs: Any) -> List[str]:
     """
     Wrap a single paragraph of text, returning a list of wrapped lines.
 
@@ -92,7 +96,7 @@ def wrap(s, width=70, **kwargs):
     return ansi_terminate_lines(wrapped)
 
 
-def fill(s, width=70, **kwargs):
+def fill(s: str, width: int=70, **kwargs: Any) -> str:
     """
     Fill a single paragraph of text, returning a new string.
 
@@ -105,7 +109,7 @@ def fill(s, width=70, **kwargs):
     return '\n'.join(wrap(s, width, **kwargs))
 
 
-def _ansi_optimize(s):
+def _ansi_optimize(s: str) -> str:
     # remove clear-to-end-of-line (EL)
     s = re.sub('\x1b\[K', '', s)
     return s
@@ -123,17 +127,17 @@ def _ansi_optimize(s):
 # in this grass.
 
 
-def ansi_terminate_lines(lines):
+def ansi_terminate_lines(lines: List[str]) -> List[str]:
     """
     Walk through lines of text, terminating any outstanding color spans at
     the end of each line, and if one needed to be terminated, starting it on
     starting the color at the beginning of the next line.
     """
     state = ANSIState()
-    term_lines = []
+    term_lines: List[str] = []
     end_code = None
     for line in lines:
-        codes = ANSIRE.findall(line)
+        codes: List[str] = ANSIRE.findall(line)
         for c in codes:
             state.consume(c)
         if end_code:          # from prior line
@@ -147,7 +151,7 @@ def ansi_terminate_lines(lines):
     return term_lines
 
 
-def shorten(text, width, **kwargs):
+def shorten(text: str, width: int, **kwargs: Any):
     """Collapse and truncate the given text to fit in the given width.
     The text first has its whitespace collapsed.  If it then fits in
     the *width*, it is returned as is.  Otherwise, as many words
